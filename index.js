@@ -42,33 +42,30 @@ app.get('/likes/:userId/:viewerId', async (req, res) => {
         access_token_secret: tokenSecret
       });
       let likes = await getLikes(client, userId);
-      console.log('likes', likes);
-      // let numLikes = likes.length;
-      // let batchSize = 20;
-      // let batches = Math.ceil(numLikes / batchSize);
-      // console.log('number of batches', batches);
-      // for (let i = 0; i < batches; i++) {
-      //   let messageArr = [];
-      //   let numberBatchLikes = Math.min(batchSize * (i + 1) - batchSize * i, likes.length - batchSize * i);
-      //   for (let j = 0; j < numberBatchLikes; j++) {
-      //     messageArr.push(`${likes[batchSize * i + j]['user']['screen_name']}.${likes[batchSize * i + j]['id_str']}`)
-      //   }
-      //   let message = messageArr.join(',');
-      //   console.log('message to be sent', message);
-      //   let params = {
-      //     DelaySeconds: 10,
-      //     MessageBody: message,
-      //     QueueUrl: "https://sqs.us-east-1.amazonaws.com/292328237082/scrape-replies"
-      //    };
-      //    sqs.sendMessage(params, function(err, data) {
-      //      if (err) {
-      //        console.log("Error in refresh-friends", err);
-      //      } else {
-      //        console.log("Success in refresh-friends", data.MessageId);
-      //      }
-      //    });
-      // }
-      // need to send message to replies queue to get replies for likes
+      let numLikes = likes.length;
+      let batchSize = 20;
+      let batches = Math.ceil(numLikes / batchSize);
+      for (let i = 0; i < batches; i++) {
+        let messageArr = [];
+        let numberBatchLikes = Math.min(batchSize * (i + 1) - batchSize * i, likes.length - batchSize * i);
+        for (let j = 0; j < numberBatchLikes; j++) {
+          messageArr.push(`${likes[batchSize * i + j]['user']['screen_name']}.${likes[batchSize * i + j]['id_str']}`)
+        }
+        let message = messageArr.join(',');
+        console.log('message to be sent', message);
+        let params = {
+          DelaySeconds: 10,
+          MessageBody: message,
+          QueueUrl: "https://sqs.us-east-1.amazonaws.com/292328237082/scrape-replies"
+         };
+         sqs.sendMessage(params, function(err, data) {
+           if (err) {
+             console.log("Error in refresh-friends", err);
+           } else {
+             console.log("Success in refresh-friends", data.MessageId);
+           }
+         });
+      }
       res.writeHead(200);
       res.end(JSON.stringify(likes));
     } catch(err) {
@@ -77,7 +74,6 @@ app.get('/likes/:userId/:viewerId', async (req, res) => {
     }
 })
 
-// Launch the server
 app.listen(port, () => {
 	console.log(`listening on port ${port}`);
 })
